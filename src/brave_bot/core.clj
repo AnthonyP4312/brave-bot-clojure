@@ -2,10 +2,11 @@
   (:gen-class)
   (:require [clj-http.client :as http]
             [gniazdo.core :as ws]
-            [cheshire.core :as JSON :refer [parse-string]]))
+            [cheshire.core :as JSON :refer [parse-string]]
+            [brave-bot.op-handler :as op :refer [handler]]))
 
 (declare ws-handler)
-(defonce bot (atom {}))
+(defonce bot (atom nil))
 
 (defn url
   [& routes]
@@ -28,17 +29,15 @@
 
 (defn bot-connect
   []
-  (ws/connect (ws-url)
-    :on-connect #(prn "Connected" %)
-    :on-receive #(ws-handler (parse-string % true))
-    :on-error #(prn "Error on Websocket" %)))
-
-(defn ws-handler
-  [op]
-  (println "Received an op" op))
+  (reset! bot (ws/connect (ws-url)
+                :on-connect #(prn "Connected" %)
+                :on-receive #(handler bot (parse-string % true))
+                :on-error #(prn "Error on Websocket" %)
+                :on-close #(prn "Closed with error:" %1 %2))))
 
 (defn -main
   "Initializes the bot and caches websocket url"
   []
-  (println "Hello, World!"))
+  (println "Hello, World!")
+  (bot-connect))
 
